@@ -45,12 +45,11 @@ usage() {
 
 do_update() {
     command -v curl >/dev/null 2>&1 || die "curl is required for update"
-    command -v jq >/dev/null 2>&1 || die "jq is required for update"
 
     echo "Checking for updates..."
     local remote_version
-    remote_version=$(curl -fsSL "${FW_GITHUB_RAW_BASE}/lib/constants.sh" 2>/dev/null \
-        | grep -oP 'FW_VERSION="\K[^"]+' || echo "")
+    remote_version=$(curl -fsSL "${FW_GITHUB_PAGES_BASE}/lib/constants.sh" 2>/dev/null \
+        | sed -n 's/^readonly FW_VERSION="\([^"]*\)".*/\1/p' | head -1)
 
     if [[ -z "$remote_version" ]]; then
         die "Cannot reach GitHub. Is ${FW_GITHUB_REPO} published?"
@@ -63,25 +62,39 @@ do_update() {
 
     echo "Updating v${FW_VERSION} -> v${remote_version}..."
 
-    local data_dir="${HOME}/.local/share/file-watcher"
-    local lib_files=(constants.sh utils.sh tree.sh render.sh input.sh)
+    # Resolve install prefix from current binary location
+    local install_prefix=""
+    local current_bin=""
+    current_bin=$(readlink -f "$(command -v file-watcher 2>/dev/null || echo "${SCRIPT_DIR}/file-watcher")")
+    local current_dir=""
+    current_dir=$(dirname "$current_bin")
 
-    # Download main script
-    curl -fsSL "${FW_GITHUB_RAW_BASE}/file-watcher" -o "${data_dir}/file-watcher.tmp" \
-        || die "Failed to download file-watcher"
-    chmod +x "${data_dir}/file-watcher.tmp"
-    mv "${data_dir}/file-watcher.tmp" "${data_dir}/file-watcher"
+    if [[ "$current_dir" == *"/share/file-watcher" ]]; then
+        install_prefix="${current_dir%/share/file-watcher}"
+    else
+        install_prefix="${HOME}/.local"
+    fi
 
-    # Download lib files
-    mkdir -p "${data_dir}/lib"
-    local f
-    for f in "${lib_files[@]}"; do
-        curl -fsSL "${FW_GITHUB_RAW_BASE}/lib/${f}" -o "${data_dir}/lib/${f}.tmp" \
-            || die "Failed to download lib/${f}"
-        mv "${data_dir}/lib/${f}.tmp" "${data_dir}/lib/${f}"
-    done
+    # Download and run remote installer
+    local tmpdir=""
+    tmpdir=$(mktemp -d) || die "Failed to create temp directory"
 
-    echo "Updated to v${remote_version}!"
+    local installer="${tmpdir}/install.sh"
+    if ! curl -fsSL "${FW_GITHUB_PAGES_BASE}/install.sh" -o "$installer"; then
+        rm -rf "$tmpdir"
+        die "Failed to download installer"
+    fi
+
+    chmod +x "$installer"
+    INSTALL_PREFIX="$install_prefix" bash "$installer"
+    local status=$?
+    rm -rf "$tmpdir"
+
+    if [[ $status -eq 0 ]]; then
+        echo "Updated to v${remote_version}!"
+    else
+        die "Update failed."
+    fi
 }
 
 do_uninstall() {
