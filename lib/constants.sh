@@ -3,7 +3,7 @@
 [[ -n "${_FW_CONSTANTS_LOADED:-}" ]] && return
 readonly _FW_CONSTANTS_LOADED=1
 
-readonly FW_VERSION="0.2.1"
+readonly FW_VERSION="0.3.0"
 readonly FW_GITHUB_REPO="jaaaackieLai/file-watcher"
 readonly FW_GITHUB_PAGES_BASE="https://jaaaackielai.github.io/file-watcher"
 readonly FW_GITHUB_RAW_BASE="https://raw.githubusercontent.com/${FW_GITHUB_REPO}/main"
