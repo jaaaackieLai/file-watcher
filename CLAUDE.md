@@ -28,7 +28,8 @@ install.sh            # installer (symlink to ~/.local/bin)
 ## Running tests
 
 ```bash
-bash tests/test_tree.sh
+bash tests/test_tree.sh     # tree scanning tests
+bash tests/test_input.sh    # input/navigation tests
 ```
 
 ## Adding new features

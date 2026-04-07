@@ -39,6 +39,7 @@ file-watcher -a           # show hidden files
 |-----|--------|
 | `j` / `Down` | Move down |
 | `k` / `Up` | Move up |
+| `Tab` / `Shift+Tab` | Next / previous sibling directory |
 | `Enter` | Enter directory |
 | `Backspace` | Go to parent directory |
 | `+` / `-` | Increase / decrease tree depth |
