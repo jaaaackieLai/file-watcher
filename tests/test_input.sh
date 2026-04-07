@@ -197,6 +197,113 @@ test_init_selection_skips_parent() {
     teardown
 }
 
+# ---- Sibling navigation tests ----
+
+# Tree layout when alpha is expanded:
+#   ..(d,0)  alpha/(d,0)  sub1/(d,1)  sub2/(d,1)  beta/(d,0)  file.txt(f,0)
+# Tab at alpha should jump to beta, skipping sub1/sub2.
+
+test_find_sibling_forward_skips_children() {
+    setup
+    mkdir -p "$TEST_TMPDIR/alpha/sub1" "$TEST_TMPDIR/alpha/sub2"
+    mkdir -p "$TEST_TMPDIR/beta"
+    touch "$TEST_TMPDIR/file.txt"
+    WATCH_DIR="$TEST_TMPDIR"
+    TREE_DEPTH=3
+    SHOW_HIDDEN=0
+    EXPANDED_DIRS=("$TEST_TMPDIR/alpha")
+    scan_directory
+
+    # alpha is at index 1, depth 0
+    SELECTED=1
+    local result
+    result=$(_find_sibling_dir_in_direction 1)
+    assert_eq "beta" "${FILE_NAMES[$result]}" "forward sibling should be beta, skipping sub1/sub2"
+    teardown
+}
+
+test_find_sibling_backward_skips_children() {
+    setup
+    mkdir -p "$TEST_TMPDIR/alpha/sub1" "$TEST_TMPDIR/alpha/sub2"
+    mkdir -p "$TEST_TMPDIR/beta"
+    touch "$TEST_TMPDIR/file.txt"
+    WATCH_DIR="$TEST_TMPDIR"
+    TREE_DEPTH=3
+    SHOW_HIDDEN=0
+    EXPANDED_DIRS=("$TEST_TMPDIR/alpha")
+    scan_directory
+
+    # Find beta's index
+    local beta_idx
+    for (( i = 0; i < FILE_COUNT; i++ )); do
+        [[ "${FILE_NAMES[$i]}" == "beta" ]] && beta_idx=$i
+    done
+    SELECTED=$beta_idx
+    local result
+    result=$(_find_sibling_dir_in_direction -1)
+    assert_eq "alpha" "${FILE_NAMES[$result]}" "backward sibling should be alpha, skipping sub1/sub2"
+    teardown
+}
+
+test_find_sibling_no_sibling_stays_put() {
+    setup
+    mkdir -p "$TEST_TMPDIR/only_dir/child"
+    WATCH_DIR="$TEST_TMPDIR"
+    TREE_DEPTH=3
+    SHOW_HIDDEN=0
+    EXPANDED_DIRS=("$TEST_TMPDIR/only_dir")
+    scan_directory
+
+    # only_dir is at index 1, depth 0 -- no other depth-0 dir
+    SELECTED=1
+    local result
+    result=$(_find_sibling_dir_in_direction 1)
+    assert_eq "$SELECTED" "$result" "no forward sibling should stay at current"
+    teardown
+}
+
+test_find_sibling_from_nested_dir() {
+    setup
+    mkdir -p "$TEST_TMPDIR/src/lib" "$TEST_TMPDIR/src/utils"
+    WATCH_DIR="$TEST_TMPDIR"
+    TREE_DEPTH=3
+    SHOW_HIDDEN=0
+    EXPANDED_DIRS=("$TEST_TMPDIR/src" "$TEST_TMPDIR/src/lib")
+    scan_directory
+
+    # Find lib's index (depth 1)
+    local lib_idx
+    for (( i = 0; i < FILE_COUNT; i++ )); do
+        [[ "${FILE_NAMES[$i]}" == "lib" ]] && lib_idx=$i
+    done
+    SELECTED=$lib_idx
+    local result
+    result=$(_find_sibling_dir_in_direction 1)
+    assert_eq "utils" "${FILE_NAMES[$result]}" "sibling at depth 1 should be utils"
+    teardown
+}
+
+test_find_sibling_does_not_wrap() {
+    setup
+    mkdir -p "$TEST_TMPDIR/alpha" "$TEST_TMPDIR/beta"
+    WATCH_DIR="$TEST_TMPDIR"
+    TREE_DEPTH=3
+    SHOW_HIDDEN=0
+    EXPANDED_DIRS=()
+    scan_directory
+
+    # beta is the last depth-0 dir, forward should stay put
+    local beta_idx
+    for (( i = 0; i < FILE_COUNT; i++ )); do
+        [[ "${FILE_NAMES[$i]}" == "beta" ]] && beta_idx=$i
+    done
+    SELECTED=$beta_idx
+    local result
+    result=$(_find_sibling_dir_in_direction 1)
+    assert_eq "$SELECTED" "$result" "should not wrap around past last sibling"
+    teardown
+}
+
 # ---- Run ----
 
 echo "Running file-watcher input tests..."
@@ -214,6 +321,11 @@ test_select_path_defaults_to_zero
 test_navigate_expands_and_collapses
 test_set_expanded_for_parent_path
 test_init_selection_skips_parent
+test_find_sibling_forward_skips_children
+test_find_sibling_backward_skips_children
+test_find_sibling_no_sibling_stays_put
+test_find_sibling_from_nested_dir
+test_find_sibling_does_not_wrap
 
 echo ""
 echo "Results: ${PASS} passed, ${FAIL} failed"
