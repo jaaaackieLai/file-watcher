@@ -5,6 +5,12 @@ Live file tree viewer for tmux panes. Designed for vibe coding sessions where yo
 ## Install
 
 ```bash
+curl -fsSL https://jaaaackielai.github.io/file-watcher/install.sh | bash
+```
+
+Or from source:
+
+```bash
 git clone https://github.com/jaaaackieLai/file-watcher.git
 cd file-watcher
 bash install.sh
