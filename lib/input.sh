@@ -128,6 +128,8 @@ read_key() {
         case "${seq1}${seq2}" in
             '[A') echo "UP" ;;
             '[B') echo "DOWN" ;;
+            '[C') echo "RIGHT" ;;
+            '[D') echo "LEFT" ;;
             *)    echo "ESC" ;;
         esac
     elif [[ "$key" == "" ]]; then
