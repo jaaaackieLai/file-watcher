@@ -3,6 +3,43 @@
 [[ -n "${_FW_INPUT_LOADED:-}" ]] && return
 readonly _FW_INPUT_LOADED=1
 
+# _find_sibling_dir_in_direction: Find next directory at the same depth
+# Args: direction (1=forward, -1=backward)
+# Reads: SELECTED, FILE_TYPES, FILE_DEPTHS, FILE_COUNT
+# Outputs: target index (stays at SELECTED if no sibling found)
+_find_sibling_dir_in_direction() {
+    local direction="$1"
+    local current_depth="${FILE_DEPTHS[$SELECTED]}"
+    local i=$(( SELECTED + direction ))
+    while (( i >= 0 && i < FILE_COUNT )); do
+        if [[ "${FILE_TYPES[$i]}" == "d" && "${FILE_DEPTHS[$i]}" == "$current_depth" ]]; then
+            echo "$i"
+            return
+        fi
+        i=$(( i + direction ))
+    done
+    echo "$SELECTED"
+}
+
+# _navigate_to_sibling_dir: Move selection to next/prev sibling directory, expand it, re-scan
+# Args: direction (1=forward, -1=backward)
+_navigate_to_sibling_dir() {
+    local direction="$1"
+    if (( FILE_COUNT == 0 )); then
+        return
+    fi
+    local target_idx
+    target_idx=$(_find_sibling_dir_in_direction "$direction")
+    if (( target_idx == SELECTED )); then
+        return
+    fi
+    local target_path="${FILE_PATHS[$target_idx]}"
+    _set_expanded_for "$target_path"
+    scan_directory
+    _select_path "$target_path"
+    DIRTY=1
+}
+
 # _find_dir_in_direction: Find the next directory index in given direction
 # Args: direction (1=forward, -1=backward)
 # Reads: SELECTED, FILE_TYPES, FILE_COUNT
@@ -130,6 +167,7 @@ read_key() {
             '[B') echo "DOWN" ;;
             '[C') echo "RIGHT" ;;
             '[D') echo "LEFT" ;;
+            '[Z') echo "SHIFT_TAB" ;;
             *)    echo "ESC" ;;
         esac
     elif [[ "$key" == "" ]]; then
@@ -155,7 +193,10 @@ handle_input() {
             _navigate_to_dir 1
             ;;
         TAB)
-            _navigate_to_dir 1
+            _navigate_to_sibling_dir 1
+            ;;
+        SHIFT_TAB)
+            _navigate_to_sibling_dir -1
             ;;
         ENTER)
             # If selected is a directory, enter it
