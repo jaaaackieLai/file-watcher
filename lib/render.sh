@@ -69,14 +69,16 @@ draw_tree() {
 
         # Icon and name
         local display_name=""
-        if [[ "$type" == "d" ]]; then
+        if [[ "$name" == ".." ]]; then
+            display_name="${DIM}../${RESET}"
+        elif [[ "$type" == "d" ]]; then
             display_name="${BOLD}${BLUE}${name}/${RESET}"
         else
             display_name="$name"
         fi
 
         local max_name_len=$(( TERM_COLS - ${#indent} - 4 ))
-        if (( ${#name} + 1 > max_name_len )); then
+        if (( ${#name} + 1 > max_name_len )) && [[ "$name" != ".." ]]; then
             local truncated
             truncated=$(truncate_text "$name" "$max_name_len")
             if [[ "$type" == "d" ]]; then

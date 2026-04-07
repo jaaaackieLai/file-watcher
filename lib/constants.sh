@@ -3,7 +3,7 @@
 [[ -n "${_FW_CONSTANTS_LOADED:-}" ]] && return
 readonly _FW_CONSTANTS_LOADED=1
 
-readonly FW_VERSION="0.1.0"
+readonly FW_VERSION="0.2.0"
 readonly FW_GITHUB_REPO="jaaaackieLai/file-watcher"
 readonly FW_GITHUB_PAGES_BASE="https://jaaaackielai.github.io/file-watcher"
 readonly FW_GITHUB_RAW_BASE="https://raw.githubusercontent.com/${FW_GITHUB_REPO}/main"
@@ -49,3 +49,6 @@ FILE_TYPES=()    # "d" or "f"
 FILE_DEPTHS=()
 FILE_NAMES=()
 FILE_COUNT=0
+
+# Expanded directories: only these dirs show children in the tree
+EXPANDED_DIRS=()

@@ -3,8 +3,18 @@
 [[ -n "${_FW_TREE_LOADED:-}" ]] && return
 readonly _FW_TREE_LOADED=1
 
+# _is_expanded: Check if a directory path is in EXPANDED_DIRS
+_is_expanded() {
+    local path="$1"
+    local d
+    for d in "${EXPANDED_DIRS[@]+"${EXPANDED_DIRS[@]}"}"; do
+        [[ "$d" == "$path" ]] && return 0
+    done
+    return 1
+}
+
 # scan_directory: Populate FILE_PATHS/FILE_TYPES/FILE_DEPTHS/FILE_NAMES arrays
-# Reads: WATCH_DIR, TREE_DEPTH, SHOW_HIDDEN
+# Reads: WATCH_DIR, TREE_DEPTH, SHOW_HIDDEN, EXPANDED_DIRS
 # Writes: FILE_PATHS, FILE_TYPES, FILE_DEPTHS, FILE_NAMES, FILE_COUNT
 scan_directory() {
     FILE_PATHS=()
@@ -12,6 +22,16 @@ scan_directory() {
     FILE_DEPTHS=()
     FILE_NAMES=()
     FILE_COUNT=0
+
+    # Add parent entry (..) unless at filesystem root
+    local parent
+    parent="$(dirname "$WATCH_DIR")"
+    if [[ "$parent" != "$WATCH_DIR" ]]; then
+        FILE_PATHS+=("$parent")
+        FILE_TYPES+=("d")
+        FILE_DEPTHS+=(0)
+        FILE_NAMES+=("..")
+    fi
 
     _scan_recursive "$WATCH_DIR" 0
     FILE_COUNT=${#FILE_PATHS[@]}
@@ -84,7 +104,9 @@ _scan_recursive() {
         FILE_DEPTHS+=("$depth")
         FILE_NAMES+=("$name")
 
-        _scan_recursive "$d" $(( depth + 1 ))
+        if _is_expanded "$d"; then
+            _scan_recursive "$d" $(( depth + 1 ))
+        fi
     done
 
     # Then files

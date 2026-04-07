@@ -184,6 +184,7 @@ main() {
     clear_screen
 
     scan_directory
+    _init_selection
     render
 
     while $RUNNING; do
